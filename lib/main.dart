@@ -189,21 +189,29 @@ class _NotesAppState extends State<NotesApp> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: <Widget>[
-                          Icon(FontAwesomeIcons.thumbtack),
+                          Icon(
+                            FontAwesomeIcons.thumbtack,
+                            size: 18.0,
+                          ),
                           Text("Pin"),
                         ],
                       ),
                       onPressed: () {
                         setState(() {
                           _notes[i].pinned = true;
-                          _notes[i].position = i;
+                          _notes[i].position = i - _pinnedNotes.length;
                           Note note = _notes[i];
-                          _notes.removeAt(i);
                           _pinnedNotes.add(note);
+                          _notes.removeAt(i);
                           _notes.insert(_pinNotePosition, note);
+                          print('pinned: ' + _pinnedNotes.length.toString());
+                          print('all: ' + _notes.length.toString());
 
                           _pinNotePosition++;
                           _addNotePosition++;
+
+                          print('addNotePos: ' + _addNotePosition.toString());
+                          print('pinNotePos: ' + _pinNotePosition.toString());
                         });
                         Navigator.pop(context);
                         writeNotes();
@@ -221,18 +229,23 @@ class _NotesAppState extends State<NotesApp> {
                       onPressed: () {
                         setState(() {
                           Note note = _notes[i];
-                          _pinnedNotes.remove(_notes[i]);
-                          _notes.removeAt(i);
                           note.pinned = false;
-                          if (note.position + _pinnedNotes.length >= _notes.length) {
+                          if (_notes.length - _pinnedNotes.length == 0) {
                             _notes.add(note);
                           } else {
                             _notes.insert(note.position + _pinnedNotes.length, note);
                           }
+                          _pinnedNotes.remove(_notes[i]);
+                          _notes.removeAt(i);
                           note.position = null;
+                          print('pinned: ' + _pinnedNotes.length.toString());
+                          print('all: ' + _notes.length.toString());
 
                           _pinNotePosition--;
                           _addNotePosition--;
+
+                          print('addNotePos: ' + _addNotePosition.toString());
+                          print('pinNotePos: ' + _pinNotePosition.toString());
                         });
                         Navigator.pop(context);
                         writeNotes();
@@ -255,12 +268,19 @@ class _NotesAppState extends State<NotesApp> {
                 children: <Widget>[
                   ListTile(
                     leading: _notes[i].pinned ? Icon(
-                      FontAwesomeIcons.thumbtack,
-                      color: Colors.black,
-                    ) : null,
+                        FontAwesomeIcons.thumbtack,
+                        color: Colors.black,
+                        size: 18.0,
+                      ) : null,
                     title: Text(
-                      _notes[i].title,
-                      style: TextStyle(fontSize: 24.0),
+                      _notes[i].pinned ?
+                      (_notes[i].title.length >= 10 ?
+                        _notes[i].title.substring(0, 10).trimRight() + '...' :
+                        _notes[i].title.substring(0, _notes[i].title.length)) :
+                      (_notes[i].title.length >= 15 ?
+                        _notes[i].title.substring(0, 15).trimRight() + '...' :
+                        _notes[i].title.substring(0, _notes[i].title.length)),
+                      style: TextStyle(fontSize: 22.0),
                     ),
                     trailing: SizedBox(
                       width: 96,
@@ -368,7 +388,7 @@ class _NotesAppState extends State<NotesApp> {
 
   addNote(Note note) {
     setState(() {
-        _notes.insert(_addNotePosition, note);
+      _notes.insert(_addNotePosition, note);
     });
   }
 
