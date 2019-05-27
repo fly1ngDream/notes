@@ -204,14 +204,9 @@ class _NotesAppState extends State<NotesApp> {
                           _pinnedNotes.add(note);
                           _notes.removeAt(i);
                           _notes.insert(_pinNotePosition, note);
-                          print('pinned: ' + _pinnedNotes.length.toString());
-                          print('all: ' + _notes.length.toString());
 
                           _pinNotePosition++;
                           _addNotePosition++;
-
-                          print('addNotePos: ' + _addNotePosition.toString());
-                          print('pinNotePos: ' + _pinNotePosition.toString());
                         });
                         Navigator.pop(context);
                         writeNotes();
@@ -238,14 +233,9 @@ class _NotesAppState extends State<NotesApp> {
                           _pinnedNotes.remove(_notes[i]);
                           _notes.removeAt(i);
                           note.position = null;
-                          print('pinned: ' + _pinnedNotes.length.toString());
-                          print('all: ' + _notes.length.toString());
 
                           _pinNotePosition--;
                           _addNotePosition--;
-
-                          print('addNotePos: ' + _addNotePosition.toString());
-                          print('pinNotePos: ' + _pinNotePosition.toString());
                         });
                         Navigator.pop(context);
                         writeNotes();
@@ -266,56 +256,76 @@ class _NotesAppState extends State<NotesApp> {
             child: Card(
               child: Column(
                 children: <Widget>[
-                  ListTile(
-                    leading: _notes[i].pinned ? Icon(
-                        FontAwesomeIcons.thumbtack,
-                        color: Colors.black,
-                        size: 18.0,
-                      ) : null,
-                    title: Text(
-                      _notes[i].pinned ?
-                      (_notes[i].title.length >= 10 ?
-                        _notes[i].title.substring(0, 10).trimRight() + '...' :
-                        _notes[i].title.substring(0, _notes[i].title.length)) :
-                      (_notes[i].title.length >= 15 ?
-                        _notes[i].title.substring(0, 15).trimRight() + '...' :
-                        _notes[i].title.substring(0, _notes[i].title.length)),
-                      style: TextStyle(fontSize: 22.0),
-                    ),
-                    trailing: SizedBox(
-                      width: 96,
+                  FlatButton(
+                    child: Container(
+                      height: 55.0,
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
                         children: <Widget>[
-                          IconButton(
-                            icon: Icon(
-                              _notes[i].showDescription ?
-                              Icons.lens : Icons.adjust,
-                              color: Colors.blue[500],
+                          _notes[i].pinned ? Padding(
+                            padding: EdgeInsets.only(right: 15.0),
+                            child: Icon(
+                              FontAwesomeIcons.thumbtack,
+                              color: Colors.black,
+                              size: 18.0,
                             ),
-                            splashColor: Colors.blue[300],
-                            onPressed: () {
-                              setState(() {
-                                _notes[i].showDescription = _notes[i].showDescription ?
-                                false : true;
-                              });
-                              writeNotes();
-                            }
-                          ),
-                          IconButton(
-                            icon: Icon(
-                              CupertinoIcons.clear_circled_solid,
-                              color: Colors.red,
+                          ) : SizedBox(),
+                          Expanded(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: <Widget>[
+                                Text(
+                                  _notes[i].pinned
+                                  ? (_notes[i].title.length >= 10
+                                    ? _notes[i].title.substring(0, 10).trimRight() + '...'
+                                    : _notes[i].title.substring(0, _notes[i].title.length))
+                                  : (_notes[i].title.length >= 15
+                                    ? _notes[i].title.substring(0, 15).trimRight() + '...'
+                                    : _notes[i].title.substring(0, _notes[i].title.length)),
+                                  style: TextStyle(
+                                    fontSize: 22.0,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 96,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: <Widget>[
+                                      IconButton(
+                                        icon: Icon(
+                                          _notes[i].showDescription ?
+                                          Icons.lens : Icons.adjust,
+                                          color: Colors.blue[500],
+                                        ),
+                                        splashColor: Colors.blue[300],
+                                        onPressed: () {
+                                          setState(() {
+                                            _notes[i].showDescription = _notes[i].showDescription ?
+                                            false : true;
+                                          });
+                                          writeNotes();
+                                        }
+                                      ),
+                                      IconButton(
+                                        icon: Icon(
+                                          CupertinoIcons.clear_circled_solid,
+                                          color: Colors.red,
+                                        ),
+                                        splashColor: Colors.orange[300],
+                                        onPressed: () {
+                                          showConfirmDeletionDialog(_notes[i]);
+                                        }
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
-                            splashColor: Colors.orange[300],
-                            onPressed: () {
-                              showConfirmDeletionDialog(_notes[i]);
-                            }
                           ),
                         ],
                       ),
                     ),
-                    onTap: () {
+                    onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute<void>(
                           builder: (BuildContext context) {
@@ -327,7 +337,7 @@ class _NotesAppState extends State<NotesApp> {
                           }
                         )
                       );
-                    }
+                    },
                   ),
                   Divider(height: 10.0),
                   _notes[i].showDescription ? Container(
