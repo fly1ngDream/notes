@@ -44,16 +44,11 @@ class _NotesAppState extends State<NotesApp> {
 
   List<Note> _pinnedNotes = List<Note>();
 
-  int _addNotePosition = 0;
-  int _pinNotePosition = 0;
-
   @override
   void initState() {
     super.initState();
     readNotes();
     readPinnedNotes();
-    readAddNotePosition();
-    readPinNotePosition();
   }
 
   @override
@@ -176,82 +171,10 @@ class _NotesAppState extends State<NotesApp> {
       child: ListView.builder(
         itemCount: _notes.length,
         itemBuilder: (context, i) {
-          final RenderBox overlay = Overlay.of(context).context.findRenderObject();
-
           return GestureDetector(
             onTapDown: _storePosition,
             onLongPress: () {
-              showMenu(
-                items: <PopupMenuEntry>[
-                  PopupMenuItem(
-                    value: 1,
-                    child: !_notes[i].pinned ? FlatButton(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: <Widget>[
-                          Icon(
-                            FontAwesomeIcons.thumbtack,
-                            size: 18.0,
-                          ),
-                          Text("Pin"),
-                        ],
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _notes[i].pinned = true;
-                          _notes[i].position = i - _pinnedNotes.length;
-                          Note note = _notes[i];
-                          _pinnedNotes.add(note);
-                          _notes.removeAt(i);
-                          _notes.insert(_pinNotePosition, note);
-
-                          _pinNotePosition++;
-                          _addNotePosition++;
-                        });
-                        Navigator.pop(context);
-                        writeNotes();
-                        writePinnedNotes();
-                        writeAddNotePosition();
-                        writePinNotePosition();
-                      },
-                    ) : FlatButton(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: <Widget>[
-                          Text("Unpin"),
-                        ],
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          Note note = _notes[i];
-                          note.pinned = false;
-                          if (_notes.length - _pinnedNotes.length == 0) {
-                            _notes.add(note);
-                          } else {
-                            _notes.insert(note.position + _pinnedNotes.length, note);
-                          }
-                          _pinnedNotes.remove(_notes[i]);
-                          _notes.removeAt(i);
-                          note.position = null;
-
-                          _pinNotePosition--;
-                          _addNotePosition--;
-                        });
-                        Navigator.pop(context);
-                        writeNotes();
-                        writePinnedNotes();
-                        writeAddNotePosition();
-                        writePinNotePosition();
-                      },
-                    ),
-                  ),
-                ],
-                context: context,
-                position: RelativeRect.fromRect(
-                  _tapPosition & Size(40, 40), // smaller rect, the touch area
-                  Offset.zero & overlay.size   // Bigger rect, the entire screen
-                )
-              );
+              _buildOnLongPressMenu(context, i);
             },
             child: Card(
               child: Column(
@@ -359,6 +282,82 @@ class _NotesAppState extends State<NotesApp> {
     );
   }
 
+  void _buildOnLongPressMenu(context, i) {
+    final RenderBox overlay = Overlay.of(context).context.findRenderObject();
+    showMenu(
+      items: <PopupMenuEntry>[
+        PopupMenuItem(
+          value: 1,
+          child: !_notes[i].pinned ? FlatButton(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: <Widget>[
+                Icon(
+                  FontAwesomeIcons.thumbtack,
+                  size: 18.0,
+                ),
+                Text("Pin"),
+              ],
+            ),
+            onPressed: () {
+              setState(() {
+                _notes[i].pinned = true;
+                // _notes[i].position = i;
+                Note note = _notes[i];
+                _notes.removeAt(i);
+                _notes.insert(_pinnedNotes.length, note);
+                _pinnedNotes.add(note);
+              });
+              Navigator.pop(context);
+              writeAll();
+            },
+          ) : FlatButton(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: <Widget>[
+                Text("Unpin"),
+              ],
+            ),
+            onPressed: () {
+              setState(() {
+                Note note = _notes[i];
+                note.pinned = false;
+                if (note.position == 0 &&
+                  _notes.length - _pinnedNotes.length >= 1) {
+                  _notes.insert(0, note);
+                } else if (note.position < _pinnedNotes.length &&
+                  note.position > (_notes.length - _pinnedNotes.length) - 1) {
+                  _notes.add(note);
+                } else {
+                  _notes.insert(note.position + 1, note);
+                }
+                _pinnedNotes.remove(_notes[i]);
+                _notes.removeAt(i);
+
+                if (_pinnedNotes.length == 0) {
+                  _notes.forEach((Note note) {
+                      note.position = _notes.indexOf(note);
+                  });
+                }
+
+                for (Note note in _notes) {
+                  print(note.title + ' ' + note.position.toString());
+                }
+              });
+              Navigator.pop(context);
+              writeAll();
+            },
+          ),
+        ),
+      ],
+      context: context,
+      position: RelativeRect.fromRect(
+        _tapPosition & Size(40, 40),
+        Offset.zero & overlay.size
+      )
+    );
+  }
+
   void _storePosition(TapDownDetails details) {
     _tapPosition = details.globalPosition;
   }
@@ -381,24 +380,38 @@ class _NotesAppState extends State<NotesApp> {
               },
               child: Text('Cancel')),
             FlatButton(
+              child: Text('Delete'),
               onPressed: () {
                 setState(() {
-                    _notes.remove(note);
+                  _notes.remove(note);
+                  _pinnedNotes.remove(note);
+
+                  _notes.forEach((Note note) {
+                    if (note.pinned && note.position != null) {
+                      note.position--;
+                    }
+                  });
                 });
                 writeNotes('r');
+                writePinnedNotes();
                 _dismissDialog();
               },
-              child: Text('Delete'),
             )
           ],
         );
     });
   }
 
-
   addNote(Note note) {
     setState(() {
-      _notes.insert(_addNotePosition, note);
+      _notes.forEach((Note note) {
+        if (note.position != null) {
+          note.position++;
+        }
+      });
+
+      _notes.insert(_pinnedNotes.length, note);
+      note.position = 0;
     });
   }
 
@@ -457,6 +470,10 @@ class _NotesAppState extends State<NotesApp> {
     );
   }
 
+  removeNotes() async {
+    removeData('notes');
+  }
+
   writePinnedNotes() async {
     List<dynamic> _pinnedNotesMaps = List<dynamic>();
     _pinnedNotesMaps = _pinnedNotes.map((Note pinnedNote) => pinnedNote.toMap()).toList();
@@ -476,25 +493,18 @@ class _NotesAppState extends State<NotesApp> {
     });
   }
 
-  writeAddNotePosition() async {
-    writeData('addNotePosition', _addNotePosition.toString());
+  removePinnedNotes() async {
+    removeData('pinnedNotes');
   }
 
-  readAddNotePosition() async {
-    String _addNotePositionString = await readData('addNotePosition');
-    setState(() {
-      _addNotePosition = int.parse(jsonDecode(_addNotePositionString));
-    });
+
+  writeAll() async {
+    writeNotes();
+    writePinnedNotes();
   }
 
-  writePinNotePosition() async {
-    writeData('pinNotePosition', _pinNotePosition.toString());
-  }
-
-  readPinNotePosition() async {
-    String _pinNotePositionString = await readData('pinNotePosition');
-    setState(() {
-      _pinNotePosition = int.parse(jsonDecode(_pinNotePositionString));
-    });
+  removeAll() async {
+    removeNotes();
+    removePinnedNotes();
   }
 }
